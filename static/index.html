@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AiMD-go — AI-Powered Geospatial Data Visualization Platform">
+    <title>AiMD-go | Geospatial Intelligence Platform</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- CesiumJS (FREE, open-source 3D Globe) -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
+    <!-- Chart.js (dashboard charts) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <!-- Papa Parse (CSV parsing in browser) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- Font Awesome (icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+    <nav id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-globe-americas logo-icon"></i>
+                <div>
+                    <h1 class="logo-text">AiMD-go</h1>
+                    <span class="logo-subtitle">Geospatial Intelligence</span>
+                </div>
+            </div>
+        </div>
+
+        <ul class="sidebar-nav">
+            <li class="nav-item active" data-panel="map">
+                <i class="fas fa-map"></i>
+                <span>Map View</span>
+            </li>
+            <li class="nav-item" data-panel="upload">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Upload Data</span>
+            </li>
+            <li class="nav-item" data-panel="layers">
+                <i class="fas fa-layer-group"></i>
+                <span>Layers</span>
+                <span class="badge" id="layers-badge">0</span>
+            </li>
+            <li class="nav-item" data-panel="detection">
+                <i class="fas fa-robot"></i>
+                <span>AI Detection</span>
+            </li>
+            <li class="nav-item" data-panel="search">
+                <i class="fas fa-search-location"></i>
+                <span>Spatial Search</span>
+            </li>
+            <li class="nav-item" data-panel="dashboard">
+                <i class="fas fa-chart-bar"></i>
+                <span>Dashboard</span>
+            </li>
+            <li class="nav-item" data-panel="export">
+                <i class="fas fa-file-export"></i>
+                <span>Export</span>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <div class="version-info">
+                <i class="fas fa-code-branch"></i> v1.0.0
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+    <main id="main-content" class="main-content">
+
+        <!-- MAP CONTAINER -->
+        <div id="map-container" class="map-container">
+            <div id="map" class="map"></div>
+
+            <!-- Map Controls Overlay -->
+            <div class="map-controls">
+                <button class="map-btn" id="btn-zoom-in" title="Zoom In">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="map-btn" id="btn-zoom-out" title="Zoom Out">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <div class="map-divider"></div>
+                <button class="map-btn" id="btn-locate" title="My Location">
+                    <i class="fas fa-crosshairs"></i>
+                </button>
+                <button class="map-btn" id="btn-fullscreen" title="Fullscreen">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+
+            <!-- Basemap Selector -->
+            <div class="basemap-selector" id="basemap-selector">
+                <div class="basemap-option active" data-basemap="streets">
+                    <i class="fas fa-road"></i>
+                    <span>Streets</span>
+                </div>
+                <div class="basemap-option" data-basemap="satellite">
+                    <i class="fas fa-satellite"></i>
+                    <span>Satellite</span>
+                </div>
+                <div class="basemap-option" data-basemap="terrain">
+                    <i class="fas fa-mountain"></i>
+                    <span>Terrain</span>
+                </div>
+                <div class="basemap-option" data-basemap="dark">
+                    <i class="fas fa-moon"></i>
+                    <span>Dark</span>
+                </div>
+            </div>
+
+            <!-- Coordinates Display -->
+            <div class="coords-display" id="coords-display">
+                <span id="coords-lat">Lat: 0.0000</span>
+                <span id="coords-lon">Lon: 0.0000</span>
+                <span id="coords-zoom">Zoom: 3</span>
+            </div>
+        </div>
+
+        <!-- ═══════════════════ PANELS ═══════════════════ -->
+
+        <!-- UPLOAD PANEL -->
+        <div id="panel-upload" class="panel panel-right hidden">
+            <div class="panel-header">
+                <h2><i class="fas fa-cloud-upload-alt"></i> Upload Data</h2>
+                <button class="panel-close" onclick="closePanel('upload')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="panel-body">
+                <!-- Format Selection -->
+                <div class="upload-tabs">
+                    <button class="upload-tab active" data-format="csv">
+                        <i class="fas fa-file-csv"></i> CSV
+                    </button>
+                    <button class="upload-tab" data-format="shapefile">
+                        <i class="fas fa-vector-square"></i> Shapefile
+                    </button>
+                    <button class="upload-tab" data-format="geojson">
+                        <i class="fas fa-code"></i> GeoJSON
+                    </button>
+                </div>
+
+                <!-- Drag-Drop Zone -->
+                <div class="drop-zone" id="drop-zone">
+                    <input type="file" id="file-input" class="file-input" />
+                    <div class="drop-zone-content">
+                        <i class="fas fa-cloud-upload-alt drop-icon"></i>
+                        <p class="drop-text">Drag & drop your file here</p>
+                        <p class="drop-subtext">or click to browse</p>
+                    </div>
+                    <div class="drop-zone-active">
+                        <i class="fas fa-bullseye"></i>
+                        <p>Drop it!</p>
+                    </div>
+                </div>
+
+                <!-- File Info -->
+                <div id="file-info" class="file-info hidden">
+                    <div class="file-info-row">
+                        <i class="fas fa-file"></i>
+                        <span id="file-name">filename.csv</span>
+                        <span id="file-size" class="text-muted">0 KB</span>
+                        <button class="btn-icon" id="btn-remove-file" title="Remove">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CSV Column Mapping -->
+                <div id="csv-mapping" class="csv-mapping hidden">
+                    <h3>Column Mapping</h3>
+                    <div class="form-group">
+                        <label for="lat-column">Latitude Column</label>
+                        <select id="lat-column" class="form-select"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="lon-column">Longitude Column</label>
+                        <select id="lon-column" class="form-select"></select>
+                    </div>
+
+                    <!-- Preview Table -->
+                    <div id="csv-preview" class="csv-preview">
+                        <h4>Preview <span id="preview-count"></span></h4>
+                        <div class="table-wrapper">
+                            <table id="preview-table" class="preview-table">
+                                <thead id="preview-thead"></thead>
+                                <tbody id="preview-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Button -->
+                <button id="btn-upload" class="btn btn-primary btn-block" disabled>
+                    <i class="fas fa-upload"></i>
+                    <span>Upload & Visualize</span>
+                </button>
+
+                <!-- Upload Progress -->
+                <div id="upload-progress" class="progress-wrapper hidden">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <span class="progress-text" id="progress-text">Processing...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- LAYERS PANEL -->
+        <div id="panel-layers" class="panel panel-right hidden">
+            <div class="panel-header">
+                <h2><i class="fas fa-layer-group"></i> Layers</h2>
+                <button class="panel-close" onclick="closePanel('layers')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="panel-body">
+                <div id="layers-list" class="layers-list">
+                    <div class="empty-state" id="no-layers">
+                        <i class="fas fa-layer-group"></i>
+                        <p>No layers yet</p>
+                        <span>Upload data to add layers to the map</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DETECTION PANEL -->
+        <div id="panel-detection" class="panel panel-right hidden">
+            <div class="panel-header">
+                <h2><i class="fas fa-robot"></i> AI Detection</h2>
+                <button class="panel-close" onclick="closePanel('detection')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="panel-body">
+                <p class="panel-description">
+                    Upload aerial or satellite imagery to detect infrastructure using AI.
+                </p>
+
+                <!-- Image Upload -->
+                <div class="drop-zone drop-zone-sm" id="detection-drop-zone">
+                    <input type="file" id="detection-file-input" class="file-input"
+                           accept=".tif,.tiff,.jpg,.jpeg,.png" />
+                    <div class="drop-zone-content">
+                        <i class="fas fa-satellite drop-icon"></i>
+                        <p class="drop-text">Upload aerial image</p>
+                        <p class="drop-subtext">.tif, .jpg, .png</p>
+                    </div>
+                </div>
+
+                <!-- Detection Settings -->
+                <div class="form-group">
+                    <label>Confidence Threshold</label>
+                    <div class="range-group">
+                        <input type="range" id="confidence-slider" class="range-input"
+                               min="0.1" max="0.95" step="0.05" value="0.5" />
+                        <span id="confidence-value" class="range-value">0.50</span>
+                    </div>
+                </div>
+
+                <button id="btn-detect" class="btn btn-primary btn-block" disabled>
+                    <i class="fas fa-search"></i>
+                    <span>Run Detection</span>
+                </button>
+
+                <!-- Detection Results -->
+                <div id="detection-results" class="detection-results hidden">
+                    <h3>Results</h3>
+                    <div id="detection-stats" class="stats-grid"></div>
+                </div>
+
+                <!-- Detection History -->
+                <div id="detection-history" class="detection-history">
+                    <h3>History</h3>
+                    <div id="detection-list" class="detection-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEARCH PANEL -->
+        <div id="panel-search" class="panel panel-right hidden">
+            <div class="panel-header">
+                <h2><i class="fas fa-search-location"></i> Spatial Search</h2>
+                <button class="panel-close" onclick="closePanel('search')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="panel-body">
+                <p class="panel-description">Find features near a location or within an area.</p>
+
+                <div class="form-group">
+                    <label for="search-lat">Latitude</label>
+                    <input type="number" id="search-lat" class="form-input"
+                           step="0.0001" placeholder="e.g., 28.6139" />
+                </div>
+                <div class="form-group">
+                    <label for="search-lon">Longitude</label>
+                    <input type="number" id="search-lon" class="form-input"
+                           step="0.0001" placeholder="e.g., 77.2090" />
+                </div>
+                <div class="form-group">
+                    <label for="search-radius">Radius (meters)</label>
+                    <input type="number" id="search-radius" class="form-input"
+                           min="10" max="50000" value="500" />
+                </div>
+
+                <button id="btn-search" class="btn btn-primary btn-block">
+                    <i class="fas fa-search"></i> Search Nearby
+                </button>
+                <button id="btn-search-click" class="btn btn-outline btn-block">
+                    <i class="fas fa-map-marker-alt"></i> Click on Map to Search
+                </button>
+
+                <div id="search-results" class="search-results hidden">
+                    <h3>Results <span id="search-count" class="badge">0</span></h3>
+                    <div id="search-results-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD PANEL -->
+        <div id="panel-dashboard" class="panel panel-right panel-wide hidden">
+            <div class="panel-header">
+                <h2><i class="fas fa-chart-bar"></i> Dashboard</h2>
+                <button class="panel-close" onclick="closePanel('dashboard')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="panel-body">
+                <!-- KPI Cards -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="fas fa-layer-group"></i></div>
+                        <div class="kpi-value" id="kpi-layers">0</div>
+                        <div class="kpi-label">Total Layers</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="fas fa-map-marker-alt"></i></div>
+                        <div class="kpi-value" id="kpi-features">0</div>
+                        <div class="kpi-label">Total Features</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="fas fa-robot"></i></div>
+                        <div class="kpi-value" id="kpi-detections">0</div>
+                        <div class="kpi-label">AI Detections</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="fas fa-project-diagram"></i></div>
+                        <div class="kpi-value" id="kpi-projects">0</div>
+                        <div class="kpi-label">Projects</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="chart-container">
+                    <h3>Features by Source</h3>
+                    <canvas id="chart-sources"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- EXPORT PANEL -->
+        <div id="panel-export" class="panel panel-right hidden">
+            <div class="panel-header">
+                <h2><i class="fas fa-file-export"></i> Export Data</h2>
+                <button class="panel-close" onclick="closePanel('export')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="panel-body">
+                <p class="panel-description">Export layer data in multiple formats.</p>
+
+                <div class="form-group">
+                    <label for="export-layer">Select Layer</label>
+                    <select id="export-layer" class="form-select">
+                        <option value="">— Select a layer —</option>
+                    </select>
+                </div>
+
+                <div class="export-formats">
+                    <button class="export-btn" data-format="geojson">
+                        <i class="fas fa-code"></i>
+                        <span>GeoJSON</span>
+                        <small>.geojson</small>
+                    </button>
+                    <button class="export-btn" data-format="csv">
+                        <i class="fas fa-file-csv"></i>
+                        <span>CSV</span>
+                        <small>.csv</small>
+                    </button>
+                    <button class="export-btn" data-format="kml">
+                        <i class="fas fa-globe"></i>
+                        <span>KML</span>
+                        <small>Google Earth</small>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ═══════════════════ TOAST NOTIFICATIONS ═══════════════════ -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- ═══════════════════ SCRIPTS ═══════════════════ -->
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/map.js"></script>
+    <script src="/static/js/upload.js"></script>
+    <script src="/static/js/layers.js"></script>
+    <script src="/static/js/detection.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

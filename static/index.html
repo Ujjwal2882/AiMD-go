@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +10,9 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
 
     <!-- CesiumJS (FREE, open-source 3D Globe) -->
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Cesium.js"></script>
@@ -25,8 +28,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
 </head>
+
 <body>
     <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
     <nav id="sidebar" class="sidebar">
@@ -241,7 +245,7 @@
         </div>
 
         <!-- DETECTION PANEL -->
-        <div id="panel-detection" class="panel panel-right hidden">
+        <div id="panel-detection" class="panel panel-right panel-wide hidden">
             <div class="panel-header">
                 <h2><i class="fas fa-robot"></i> AI Detection</h2>
                 <button class="panel-close" onclick="closePanel('detection')">
@@ -249,46 +253,126 @@
                 </button>
             </div>
             <div class="panel-body">
-                <p class="panel-description">
-                    Upload aerial or satellite imagery to detect infrastructure using AI.
-                </p>
 
-                <!-- Image Upload -->
-                <div class="drop-zone drop-zone-sm" id="detection-drop-zone">
-                    <input type="file" id="detection-file-input" class="file-input"
-                           accept=".tif,.tiff,.jpg,.jpeg,.png" />
-                    <div class="drop-zone-content">
-                        <i class="fas fa-satellite drop-icon"></i>
-                        <p class="drop-text">Upload aerial image</p>
-                        <p class="drop-subtext">.tif, .jpg, .png</p>
+                <!-- ═══ CHANGE DETECTION MODE ═══ -->
+                <div id="mode-change" class="detection-mode-content">
+                    <p class="panel-description">
+                        Upload two images of the same area at different times to detect changes.
+                        Powered by AnyChange (SAM-based zero-shot change detection).
+                    </p>
+
+                    <!-- 3-Box Grid -->
+                    <div class="change-detection-grid">
+                        <!-- Box 1: T1 (Older Image) -->
+                        <div class="change-box" id="change-box-t1">
+                            <div class="change-box-header">
+                                <i class="fas fa-clock"></i>
+                                <span>Older Image (T1)</span>
+                            </div>
+                            <div class="change-box-body">
+                                <div class="change-drop-zone" id="change-drop-t1">
+                                    <input type="file" id="change-file-t1" class="file-input"
+                                        accept=".tif,.tiff,.jpg,.jpeg,.png" />
+                                    <div class="change-drop-content" id="change-drop-content-t1">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Upload T1</p>
+                                        <small>Older timestamp</small>
+                                    </div>
+                                    <img class="change-preview-img hidden" id="change-preview-t1" alt="T1 Preview" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Box 2: T2 (Newer Image) -->
+                        <div class="change-box" id="change-box-t2">
+                            <div class="change-box-header">
+                                <i class="fas fa-clock"></i>
+                                <span>Newer Image (T2)</span>
+                            </div>
+                            <div class="change-box-body">
+                                <div class="change-drop-zone" id="change-drop-t2">
+                                    <input type="file" id="change-file-t2" class="file-input"
+                                        accept=".tif,.tiff,.jpg,.jpeg,.png" />
+                                    <div class="change-drop-content" id="change-drop-content-t2">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Upload T2</p>
+                                        <small>Newer timestamp</small>
+                                    </div>
+                                    <img class="change-preview-img hidden" id="change-preview-t2" alt="T2 Preview" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Box 3: Change Result -->
+                        <div class="change-box change-box-result" id="change-box-result">
+                            <div class="change-box-header">
+                                <i class="fas fa-magic"></i>
+                                <span>Detected Changes</span>
+                            </div>
+                            <div class="change-box-body">
+                                <div class="change-result-placeholder" id="change-result-placeholder">
+                                    <i class="fas fa-layer-group"></i>
+                                    <p>Results will appear here</p>
+                                    <small>Upload both images to start</small>
+                                </div>
+                                <div class="change-result-display hidden" id="change-result-display">
+                                    <img class="change-result-img" id="change-result-img" alt="Change Mask" />
+                                </div>
+                                <div class="change-processing hidden" id="change-processing">
+                                    <div class="change-processing-spinner"></div>
+                                    <p>Analyzing changes...</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Detection Settings -->
-                <div class="form-group">
-                    <label>Confidence Threshold</label>
-                    <div class="range-group">
-                        <input type="range" id="confidence-slider" class="range-input"
-                               min="0.1" max="0.95" step="0.05" value="0.5" />
-                        <span id="confidence-value" class="range-value">0.50</span>
+                    <!-- Change Detection Settings -->
+                    <div class="change-settings">
+                        <div class="form-group">
+                            <label>Change Sensitivity</label>
+                            <div class="range-group">
+                                <input type="range" id="change-confidence-slider" class="range-input" min="80" max="200"
+                                    step="5" value="145" />
+                                <span id="change-confidence-value" class="range-value">145</span>
+                            </div>
+                            <small class="form-hint">Lower = more sensitive, Higher = stricter filtering</small>
+                        </div>
+
+                        <div class="change-actions">
+                            <!-- Server-side detection hidden (API not available) -->
+                            <!--
+                            <button id="btn-change-detect" class="btn btn-primary btn-block" disabled>
+                                <i class="fas fa-search-plus"></i>
+                                <span>Run Change Detection</span>
+                            </button>
+                            -->
+                            <button id="btn-change-client" class="btn btn-primary btn-block" disabled>
+                                <i class="fas fa-bolt"></i>
+                                <span>Quick Diff (Client-side)</span>
+                            </button>
+                            <button id="btn-change-clear" class="btn btn-outline btn-block" disabled
+                                style="margin-top: 8px; color: var(--danger, #dc3545); border-color: var(--danger, #dc3545);">
+                                <i class="fas fa-trash"></i>
+                                <span>Clear Images</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <button id="btn-detect" class="btn btn-primary btn-block" disabled>
-                    <i class="fas fa-search"></i>
-                    <span>Run Detection</span>
-                </button>
+                    <!-- Change Detection Stats -->
+                    <div id="change-stats" class="change-stats hidden">
+                        <h3><i class="fas fa-chart-pie"></i> Change Analysis</h3>
+                        <div class="stats-grid" id="change-stats-grid"></div>
+                    </div>
 
-                <!-- Detection Results -->
-                <div id="detection-results" class="detection-results hidden">
-                    <h3>Results</h3>
-                    <div id="detection-stats" class="stats-grid"></div>
-                </div>
-
-                <!-- Detection History -->
-                <div id="detection-history" class="detection-history">
-                    <h3>History</h3>
-                    <div id="detection-list" class="detection-list"></div>
+                    <!-- View Toggle -->
+                    <div id="change-view-toggle" class="change-view-toggle hidden">
+                        <button class="change-view-btn active" data-view="overlay">
+                            <i class="fas fa-eye"></i> Overlay
+                        </button>
+                        <button class="change-view-btn" data-view="mask">
+                            <i class="fas fa-mask"></i> Mask
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -306,18 +390,15 @@
 
                 <div class="form-group">
                     <label for="search-lat">Latitude</label>
-                    <input type="number" id="search-lat" class="form-input"
-                           step="0.0001" placeholder="e.g., 28.6139" />
+                    <input type="number" id="search-lat" class="form-input" step="0.0001" placeholder="e.g., 28.6139" />
                 </div>
                 <div class="form-group">
                     <label for="search-lon">Longitude</label>
-                    <input type="number" id="search-lon" class="form-input"
-                           step="0.0001" placeholder="e.g., 77.2090" />
+                    <input type="number" id="search-lon" class="form-input" step="0.0001" placeholder="e.g., 77.2090" />
                 </div>
                 <div class="form-group">
                     <label for="search-radius">Radius (meters)</label>
-                    <input type="number" id="search-radius" class="form-input"
-                           min="10" max="50000" value="500" />
+                    <input type="number" id="search-radius" class="form-input" min="10" max="50000" value="500" />
                 </div>
 
                 <button id="btn-search" class="btn btn-primary btn-block">
@@ -422,8 +503,9 @@
     <script src="/static/js/map.js"></script>
     <script src="/static/js/upload.js"></script>
     <script src="/static/js/layers.js"></script>
-    <script src="/static/js/detection.js"></script>
+    <script src="/static/js/detection.js?v=2"></script>
     <script src="/static/js/dashboard.js"></script>
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=2"></script>
 </body>
+
 </html>

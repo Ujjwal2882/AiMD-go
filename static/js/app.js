@@ -19,6 +19,7 @@ const App = {
         UploadHandler.init();
         LayerManager.init();
         DetectionHandler.init();
+        ChangeDetectionHandler.init();
         Dashboard.init();
 
         // Setup navigation

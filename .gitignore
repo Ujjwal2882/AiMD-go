@@ -72,3 +72,10 @@ htmlcov/
 # Temporary files
 *.tmp
 *.bak
+
+# Google Drive credentials (NEVER commit)
+credentials.json
+
+# Processed data
+data/processed/
+data/object_store/

@@ -1,72 +1,68 @@
 """
-AiMD-go Project API Endpoints
-Project management — CRUD operations for organizing layers into projects.
+AiMD-go Projects Endpoints
 """
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List
+from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Optional
-
-from app.storage import storage
+from app.schemas.projects import ProjectCreate, ProjectResponse
+from app.storage.database import get_db
+from app.storage.models import Project
 
 router = APIRouter(prefix="/api", tags=["Projects"])
 
-
-class ProjectCreateRequest(BaseModel):
-    name: str
-    description: str = ""
-
-
-@router.get("/projects")
-async def list_projects():
-    """List all projects."""
-    projects = storage.list_projects()
-    return {"projects": projects, "count": len(projects)}
-
-
-@router.post("/projects")
-async def create_project(request: ProjectCreateRequest):
-    """Create a new project."""
-    if not request.name.strip():
-        raise HTTPException(status_code=400, detail="Project name is required")
-
-    project = storage.create_project(
-        name=request.name.strip(),
-        description=request.description.strip(),
+@router.post("/projects", response_model=ProjectResponse)
+def create_project(project: ProjectCreate, db = Depends(get_db)):
+    project_id = str(uuid4())[:12]
+    new_project = Project(
+        id=project_id,
+        name=project.name,
+        description=project.description
     )
-    return {"status": "success", "project": project}
+    db.add(new_project)
+    db.commit()
+    db.refresh(new_project)
+    
+    return {
+        "id": new_project.id,
+        "name": new_project.name,
+        "description": new_project.description,
+        "created_at": str(new_project.created_at),
+        "updated_at": str(new_project.updated_at),
+        "layer_ids": [l.id for l in new_project.layers]
+    }
 
+@router.get("/projects", response_model=List[ProjectResponse])
+def list_projects(db = Depends(get_db)):
+    projects = db.query(Project).all()
+    return [{
+        "id": p.id,
+        "name": p.name,
+        "description": p.description,
+        "created_at": str(p.created_at),
+        "updated_at": str(p.updated_at),
+        "layer_ids": [l.id for l in p.layers]
+    } for p in projects]
 
-@router.get("/projects/{project_id}")
-async def get_project(project_id: str):
-    """Get project details with its layers."""
-    project = storage.get_project(project_id)
+@router.get("/projects/{project_id}", response_model=ProjectResponse)
+def get_project(project_id: str, db = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found")
-
-    # Include layer metadata
-    layers = storage.list_layers(project_id=project_id)
-    project["layers"] = layers
-
-    return project
-
-
-@router.put("/projects/{project_id}")
-async def update_project(project_id: str, request: ProjectCreateRequest):
-    """Update project name/description."""
-    project = storage.update_project(project_id, {
-        "name": request.name.strip(),
-        "description": request.description.strip(),
-    })
-    if not project:
-        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found")
-    return {"status": "success", "project": project}
-
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {
+        "id": project.id,
+        "name": project.name,
+        "description": project.description,
+        "created_at": str(project.created_at),
+        "updated_at": str(project.updated_at),
+        "layer_ids": [l.id for l in project.layers]
+    }
 
 @router.delete("/projects/{project_id}")
-async def delete_project(project_id: str):
-    """Delete a project and all its layers."""
-    success = storage.delete_project(project_id)
-    if not success:
-        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found")
-    return {"status": "success", "message": f"Project '{project_id}' deleted"}
+def delete_project(project_id: str, db = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    db.delete(project)
+    db.commit()
+    return {"status": "success", "message": "Project deleted"}

@@ -1,0 +1,21 @@
+# ═══════════════════════════════════════════════════════════════════
+# AiMD-go Netlify Configuration
+# Serves static frontend, proxies /api/* to Render backend
+# ═══════════════════════════════════════════════════════════════════
+
+[build]
+  publish = "static/"
+  # No build command needed — pure static HTML/CSS/JS
+
+# Proxy all API requests to the Render backend (avoids CORS entirely)
+[[redirects]]
+  from = "/api/*"
+  to = "https://aimd-api.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+# SPA fallback — serve index.html for all other routes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

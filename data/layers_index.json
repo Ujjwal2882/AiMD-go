@@ -1,0 +1,74 @@
+{
+  "8afe40bf-692": {
+    "id": "8afe40bf-692",
+    "name": "21 TO 30 (2)",
+    "source_type": "csv",
+    "project_id": null,
+    "feature_count": 9,
+    "bounds": {
+      "north": 24.06721,
+      "south": 24.06316,
+      "east": 69.42676,
+      "west": 69.39184
+    },
+    "style": {
+      "color": "#6366f1",
+      "fillColor": "#6366f1",
+      "weight": 2,
+      "opacity": 0.9,
+      "fillOpacity": 0.6,
+      "radius": 6
+    },
+    "visible": true,
+    "opacity": 0.8,
+    "created_at": "2026-06-08T11:53:15.656489Z"
+  },
+  "4c25b37c-d3f": {
+    "id": "4c25b37c-d3f",
+    "name": "21 TO 30 (2)",
+    "source_type": "csv",
+    "project_id": null,
+    "feature_count": 9,
+    "bounds": {
+      "north": 24.06721,
+      "south": 24.06316,
+      "east": 69.42676,
+      "west": 69.39184
+    },
+    "style": {
+      "color": "#6366f1",
+      "fillColor": "#6366f1",
+      "weight": 2,
+      "opacity": 0.9,
+      "fillOpacity": 0.6,
+      "radius": 6
+    },
+    "visible": true,
+    "opacity": 0.8,
+    "created_at": "2026-06-08T12:05:15.932629Z"
+  },
+  "478a354f-a38": {
+    "id": "478a354f-a38",
+    "name": "21 TO 30 (2)",
+    "source_type": "csv",
+    "project_id": null,
+    "feature_count": 9,
+    "bounds": {
+      "north": 24.06721,
+      "south": 24.06316,
+      "east": 69.42676,
+      "west": 69.39184
+    },
+    "style": {
+      "color": "#6366f1",
+      "fillColor": "#6366f1",
+      "weight": 2,
+      "opacity": 0.9,
+      "fillOpacity": 0.6,
+      "radius": 6
+    },
+    "visible": true,
+    "opacity": 0.8,
+    "created_at": "2026-06-08T12:17:42.653585Z"
+  }
+}

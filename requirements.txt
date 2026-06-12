@@ -38,3 +38,26 @@ openpyxl==3.1.3
 # Utilities
 uuid6==2024.7.10
 orjson==3.10.3
+
+# --- NEW ADDITIONS FOR PRODUCTION ARCHITECTURE ---
+
+# Database & ORM
+SQLAlchemy==2.0.30
+GeoAlchemy2==0.15.1
+psycopg2-binary==2.9.9
+
+# Async Workers & Queue
+celery==5.4.0
+redis==5.0.4
+
+# Security & Auth
+PyJWT==2.8.0
+passlib[bcrypt]==1.7.4
+
+# Logging
+loguru==0.7.2
+
+# Google Drive Integration
+google-api-python-client==2.126.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.0

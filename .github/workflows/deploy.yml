@@ -1,0 +1,48 @@
+# ═══════════════════════════════════════════════════════════════════
+# AiMD-go CI/CD: Deploy to Render on push to main
+# Runs pytest → triggers Render deploy hook
+# ═══════════════════════════════════════════════════════════════════
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies (GDAL/GEOS)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgdal-dev libgeos-dev libproj-dev gdal-bin
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --tb=short
+        env:
+          DATABASE_URL: "sqlite:///test.db"
+          REDIS_URL: "redis://localhost:6379/0"
+
+      - name: Trigger Render deploy
+        if: success()
+        run: |
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}

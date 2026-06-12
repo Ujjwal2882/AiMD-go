@@ -1,0 +1,50 @@
+# ═══════════════════════════════════════════════════════════════════
+# AiMD-go Render Blueprint
+# Defines two free-tier services from the same Docker image.
+# ═══════════════════════════════════════════════════════════════════
+
+services:
+  # 1. API Web Server
+  - type: web
+    name: aimd-api
+    runtime: docker
+    plan: free
+    repo: https://github.com/Ujjwal2882/AiMD-go
+    branch: main
+    dockerCommand: uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
+        sync: false
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://aimd-go.netlify.app,http://localhost:3000
+
+  # 2. Background Worker (Celery)
+  - type: worker
+    name: aimd-worker
+    runtime: docker
+    plan: free
+    repo: https://github.com/Ujjwal2882/AiMD-go
+    branch: main
+    dockerCommand: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
+        sync: false
+      - key: GOOGLE_DRIVE_FOLDER_ID
+        sync: false

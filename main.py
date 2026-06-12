@@ -1,12 +1,6 @@
 """
 🌍 AiMD-go — AI-Powered Geospatial Data Visualization Platform
 Main Entry Point
-
-Usage:
-    python main.py
-
-Starts the FastAPI server on http://localhost:8000
-Serves both the web UI and REST API from a single process.
 """
 
 import os
@@ -20,8 +14,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.config import settings
+from app.core.config import settings
+from app.core.logging import setup_logging
 from app.api import upload, layers, projects, detect, search, export
+from app.storage.database import engine, Base
+
+# Initialize logging
+setup_logging()
+
+# Initialize DB tables
+Base.metadata.create_all(bind=engine)
 
 # ──────────────────── FastAPI Application ────────────────────
 
@@ -33,10 +35,15 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS middleware (allow all origins for development)
+# CORS middleware — reads allowed origins from CORS_ORIGINS env var
+# In production: CORS_ORIGINS="https://aimd-go.netlify.app"
+# In development: defaults to localhost
+cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000")
+cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,13 +62,31 @@ app.include_router(export.router)
 
 # ──────────────────── Health Check ────────────────────
 
+@app.get("/health", tags=["System"])
 @app.get("/api/health", tags=["System"])
 async def health_check():
-    """Health check endpoint."""
+    """
+    Health check endpoint.
+    Used by Render health checks and the GitHub Actions keep-alive cron.
+    Available at both /health and /api/health.
+    """
+    import time
+    db_ok = False
+    try:
+        import psycopg2
+        conn = psycopg2.connect(settings.DATABASE_URL)
+        conn.cursor().execute("SELECT 1")
+        conn.close()
+        db_ok = True
+    except Exception:
+        pass
+
     return {
-        "status": "healthy",
+        "status": "healthy" if db_ok else "degraded",
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "database": "connected" if db_ok else "unreachable",
+        "timestamp": time.time(),
     }
 
 

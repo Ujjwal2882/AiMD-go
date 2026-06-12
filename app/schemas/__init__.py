@@ -1,0 +1,1 @@
+# AiMD-go Schemas Module

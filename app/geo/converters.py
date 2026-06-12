@@ -15,7 +15,7 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from app.config import settings
+from app.core.config import settings
 
 
 class CSVConverter:

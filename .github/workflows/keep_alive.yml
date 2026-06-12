@@ -1,0 +1,20 @@
+# ═══════════════════════════════════════════════════════════════════
+# AiMD-go Keep-Alive Cron
+# Pings the Render health endpoint every 14 minutes to prevent
+# the free-tier service from spinning down after 15 min of inactivity.
+# ═══════════════════════════════════════════════════════════════════
+
+name: Keep Alive
+
+on:
+  schedule:
+    - cron: "*/14 * * * *"   # Every 14 minutes
+  workflow_dispatch:          # Allow manual trigger
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render health endpoint
+        run: |
+          curl -fsS https://aimd-api.onrender.com/health || echo "Health check failed (service may be cold-starting)"

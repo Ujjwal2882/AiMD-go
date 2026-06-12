@@ -17,13 +17,9 @@ from fastapi.responses import FileResponse
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api import upload, layers, projects, detect, search, export
-from app.storage.database import engine, Base
 
 # Initialize logging
 setup_logging()
-
-# Initialize DB tables
-Base.metadata.create_all(bind=engine)
 
 # ──────────────────── FastAPI Application ────────────────────
 
@@ -111,8 +107,16 @@ async def serve_frontend():
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize directories and print startup banner."""
+    """Initialize directories, DB tables, and print startup banner."""
     settings.init_directories()
+
+    # Initialize DB tables (lazy — only at startup, not at import)
+    try:
+        from app.storage.database import engine, Base
+        Base.metadata.create_all(bind=engine)
+        print("  [DB] Tables initialized successfully")
+    except Exception as e:
+        print(f"  [DB] Warning: Could not initialize tables: {e}")
 
     print("\n" + "=" * 60)
     print(f"  [AiMD-go] {settings.APP_NAME} v{settings.APP_VERSION}")

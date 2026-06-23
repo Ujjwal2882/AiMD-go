@@ -4,6 +4,7 @@ from sqlalchemy.sql import func
 from geoalchemy2 import Geometry
 
 from app.storage.database import Base
+from app.core.config import settings
 
 class User(Base):
     __tablename__ = "users"
@@ -35,8 +36,11 @@ class Layer(Base):
     style = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Store bounds as a PostGIS polygon for spatial queries
-    bounds = Column(Geometry('POLYGON', srid=4326), nullable=True)
+    # Store bounds as a PostGIS polygon for spatial queries (or JSON string for SQLite)
+    if settings.DATABASE_URL.startswith("sqlite"):
+        bounds = Column(String, nullable=True)
+    else:
+        bounds = Column(Geometry('POLYGON', srid=4326), nullable=True)
     
     project = relationship("Project", back_populates="layers")
     detections = relationship("DetectionJob", back_populates="layer", cascade="all, delete-orphan")

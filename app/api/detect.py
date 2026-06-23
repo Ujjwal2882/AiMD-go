@@ -184,3 +184,14 @@ async def get_detection_result(job_id: str):
         pass
 
     raise HTTPException(status_code=404, detail=f"Detection job '{job_id}' not found")
+
+
+@router.get("/detections")
+async def list_detections():
+    """List all infrastructure detection jobs."""
+    results = sorted(
+        _jobs.values(),
+        key=lambda x: x.get("completed_at", ""),
+        reverse=True,
+    )
+    return {"detections": results, "count": len(results)}

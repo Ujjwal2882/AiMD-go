@@ -19,7 +19,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from app.config import settings
+from app.core.config import settings
 from app.services.semantic_classify import (
     classify_change_region,
     extract_rois,

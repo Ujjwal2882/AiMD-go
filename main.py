@@ -89,19 +89,15 @@ async def health_check():
 
 # ──────────────────── Static Files & Frontend ────────────────────
 
-# Mount static files (CSS, JS, assets)
-static_dir = settings.STATIC_DIR
-if static_dir.exists():
-    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+# The UI is now served separately on port 3000.
+# API runs strictly on port 8000.
 
+from fastapi.responses import RedirectResponse
 
 @app.get("/", tags=["Frontend"])
-async def serve_frontend():
-    """Serve the main frontend HTML page."""
-    index_path = static_dir / "index.html"
-    if index_path.exists():
-        return FileResponse(str(index_path))
-    return {"message": "Frontend not found. Place index.html in ./static/"}
+async def root_redirect():
+    """Redirect users to the UI on port 3000."""
+    return RedirectResponse(url="http://localhost:3000")
 
 
 # ──────────────────── Startup Events ────────────────────
@@ -123,7 +119,7 @@ async def startup_event():
     print(f"  [AiMD-go] {settings.APP_NAME} v{settings.APP_VERSION}")
     print(f"  AI-Powered Geospatial Data Visualization Platform")
     print("=" * 60)
-    print(f"  [Web UI]    http://localhost:{settings.PORT}")
+    print(f"  [Web UI]    http://localhost:3000")
     print(f"  [API Docs]  http://localhost:{settings.PORT}/docs")
     print(f"  [Data Dir]  {settings.DATA_DIR}")
     print("=" * 60 + "\n")
@@ -135,9 +131,9 @@ if __name__ == "__main__":
     # Initialize directories
     settings.init_directories()
 
-    # Auto-open browser
+    # Auto-open browser to the UI port (3000)
     try:
-        webbrowser.open(f"http://localhost:{settings.PORT}")
+        webbrowser.open("http://localhost:3000")
     except Exception:
         pass
 

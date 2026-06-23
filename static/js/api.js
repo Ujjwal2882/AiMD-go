@@ -6,7 +6,7 @@
 const API = {
     // In production: Netlify injects window.ENV_API_URL via a _redirects or env.
     // In development: defaults to '' (same-origin, works with proxy or localhost:8000).
-    baseURL: window.ENV_API_URL || '',
+    baseURL: window.ENV_API_URL || 'http://localhost:8000',
 
     /**
      * GET request

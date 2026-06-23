@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     # Infrastructure settings (Supabase / Upstash defaults)
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 
-        "postgresql://postgres:[YOUR-PASSWORD]@db.hwwsjnpdhjpnywnbvaro.supabase.co:5432/postgres"
+        "sqlite:///./aimd_local.db"
     )
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/1")

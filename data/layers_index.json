@@ -1,6 +1,6 @@
 {
-  "8afe40bf-692": {
-    "id": "8afe40bf-692",
+  "71233956-0cb": {
+    "id": "71233956-0cb",
     "name": "21 TO 30 (2)",
     "source_type": "csv",
     "project_id": null,
@@ -21,34 +21,33 @@
     },
     "visible": true,
     "opacity": 0.8,
-    "created_at": "2026-06-08T11:53:15.656489Z"
+    "created_at": "2026-06-07T11:06:26.413824Z"
   },
-  "4c25b37c-d3f": {
-    "id": "4c25b37c-d3f",
-    "name": "21 TO 30 (2)",
-    "source_type": "csv",
+  "da95c254-347": {
+    "id": "da95c254-347",
+    "name": "Detection bf737ade",
+    "source_type": "ai_detection",
     "project_id": null,
-    "feature_count": 9,
+    "feature_count": 1,
     "bounds": {
-      "north": 24.06721,
-      "south": 24.06316,
-      "east": 69.42676,
-      "west": 69.39184
+      "north": 28.73264533695705,
+      "south": 28.73264533695705,
+      "east": 77.63775168187756,
+      "west": 77.63775168187756
     },
     "style": {
-      "color": "#6366f1",
-      "fillColor": "#6366f1",
+      "color": "#ef4444",
+      "fillColor": "#ef4444",
       "weight": 2,
       "opacity": 0.9,
-      "fillOpacity": 0.6,
-      "radius": 6
+      "fillOpacity": 0.3
     },
     "visible": true,
     "opacity": 0.8,
-    "created_at": "2026-06-08T12:05:15.932629Z"
+    "created_at": "2026-06-07T11:07:56.954743Z"
   },
-  "478a354f-a38": {
-    "id": "478a354f-a38",
+  "e5dbf62f-fb2": {
+    "id": "e5dbf62f-fb2",
     "name": "21 TO 30 (2)",
     "source_type": "csv",
     "project_id": null,
@@ -69,6 +68,6 @@
     },
     "visible": true,
     "opacity": 0.8,
-    "created_at": "2026-06-08T12:17:42.653585Z"
+    "created_at": "2026-06-08T10:16:46.294372Z"
   }
 }

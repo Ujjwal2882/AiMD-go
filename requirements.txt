@@ -32,6 +32,17 @@ opencv-python-headless==4.10.0.84
 # torch==2.3.0
 # torchvision==0.18.0
 
+# AnyChange (optional — install for SAM-based change detection)
+# git+https://github.com/Z-Zheng/pytorch-change-models
+# git+https://github.com/facebookresearch/segment-anything.git
+
+# Qwen2.5-VL Semantic Classification (optional — install for change labeling)
+# transformers>=4.45.0
+# torch>=2.1.0
+# torchvision>=0.16.0
+# qwen-vl-utils
+# accelerate
+
 # Export
 openpyxl==3.1.3
 

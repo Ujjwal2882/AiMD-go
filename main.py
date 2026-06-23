@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.api import upload, layers, projects, detect, search, export
+from app.api import upload, layers, projects, detect, search, export, change_detect
 
 # Initialize logging
 setup_logging()
@@ -54,6 +54,7 @@ app.include_router(projects.router)
 app.include_router(detect.router)
 app.include_router(search.router)
 app.include_router(export.router)
+app.include_router(change_detect.router)
 
 
 # ──────────────────── Health Check ────────────────────

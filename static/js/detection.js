@@ -15,6 +15,27 @@ const DetectionHandler = {
         this._setupConfidenceSlider();
         this._setupDetectButton();
         this._loadDetectionHistory();
+        this._setupModeTabs();
+    },
+
+    /**
+     * Setup detection mode tab switching
+     */
+    _setupModeTabs() {
+        document.querySelectorAll('.detection-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const mode = tab.dataset.mode;
+
+                // Update active tab
+                document.querySelectorAll('.detection-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Show/hide mode content
+                document.querySelectorAll('.detection-mode-content').forEach(c => c.classList.add('hidden'));
+                const target = document.getElementById(`mode-${mode}`);
+                if (target) target.classList.remove('hidden');
+            });
+        });
     },
 
     /**
@@ -47,6 +68,8 @@ const DetectionHandler = {
     _handleImageSelect(file) {
         this.currentFile = file;
         document.getElementById('btn-detect').disabled = false;
+        const btnClear = document.getElementById('btn-detect-clear');
+        if (btnClear) btnClear.disabled = false;
 
         // Update drop zone text
         const dropZone = document.getElementById('detection-drop-zone');
@@ -80,6 +103,39 @@ const DetectionHandler = {
         document.getElementById('btn-detect')?.addEventListener('click', () => {
             this._runDetection();
         });
+        
+        document.getElementById('btn-detect-clear')?.addEventListener('click', () => {
+            this.clearImage();
+        });
+    },
+
+    /**
+     * Clear loaded image
+     */
+    clearImage() {
+        this.currentFile = null;
+        
+        const dropZone = document.getElementById('detection-drop-zone');
+        const fileInput = document.getElementById('detection-file-input');
+        if (fileInput) fileInput.value = '';
+        
+        const content = dropZone.querySelector('.drop-zone-content');
+        if (content) {
+            content.innerHTML = `
+                <i class="fas fa-satellite drop-icon"></i>
+                <p class="drop-text">Upload aerial image</p>
+                <p class="drop-subtext">.tif, .jpg, .png</p>
+            `;
+        }
+        
+        const btnDetect = document.getElementById('btn-detect');
+        const btnClear = document.getElementById('btn-detect-clear');
+        if (btnDetect) btnDetect.disabled = true;
+        if (btnClear) btnClear.disabled = true;
+        
+        document.getElementById('detection-results')?.classList.add('hidden');
+        
+        App.showToast('Image cleared', 'info');
     },
 
     /**
@@ -262,6 +318,9 @@ const ChangeDetectionHandler = {
     t2File: null,
     currentMaskB64: null,
     currentOverlayB64: null,
+    currentClassifiedB64: null,
+    lastClassifications: null,
+    labelColors: {},
 
     /**
      * Initialize change detection UI
@@ -271,6 +330,7 @@ const ChangeDetectionHandler = {
         this._setupConfidenceSlider();
         this._setupButtons();
         this._setupViewToggle();
+        this._setupSlider();
     },
 
     /**
@@ -338,11 +398,79 @@ const ChangeDetectionHandler = {
             if (content) content.classList.add('hidden');
             if (dropZone) dropZone.classList.add('has-image');
             if (box) box.classList.add('loaded');
+
+            // Update image comparison
+            this._updateComparisonImage(id, e.target.result);
+            this._checkAndShowComparison();
         };
         reader.readAsDataURL(file);
 
         App.showToast(`${id.toUpperCase()} image loaded: ${file.name}`, 'info');
         this._updateButtonStates();
+    },
+
+    /**
+     * Update the src of the comparison images
+     */
+    _updateComparisonImage(id, dataUrl) {
+        const img = document.getElementById(`img-comp-${id}`);
+        if (img) img.src = dataUrl;
+    },
+
+    /**
+     * Show comparison container if at least one image is loaded
+     */
+    _checkAndShowComparison() {
+        if (this.t1File || this.t2File) {
+            document.getElementById('image-comparison-container')?.classList.remove('hidden');
+        }
+    },
+
+    /**
+     * Setup the before/after image slider logic
+     */
+    _setupSlider() {
+        const slider = document.getElementById('img-comp-slider');
+        const overlay = document.getElementById('img-comp-overlay');
+        const wrapper = document.querySelector('.img-comp-wrapper');
+        if (!slider || !overlay || !wrapper) return;
+
+        let isDragging = false;
+
+        const slide = (e) => {
+            if (!isDragging) return;
+            // Get x coordinate relative to the wrapper
+            let x;
+            if (e.type.includes('touch')) {
+                x = e.touches[0].clientX - wrapper.getBoundingClientRect().left;
+            } else {
+                x = e.clientX - wrapper.getBoundingClientRect().left;
+            }
+
+            // Constrain x within the wrapper bounds
+            const width = wrapper.offsetWidth;
+            if (x < 0) x = 0;
+            if (x > width) x = width;
+
+            // Calculate percentage
+            const percentage = (x / width) * 100;
+
+            // Move slider
+            slider.style.left = `${percentage}%`;
+
+            // Adjust clip-path of the overlay
+            // clip-path: inset(top right bottom left)
+            overlay.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
+        };
+
+        slider.addEventListener('mousedown', () => isDragging = true);
+        slider.addEventListener('touchstart', () => isDragging = true);
+        
+        window.addEventListener('mouseup', () => isDragging = false);
+        window.addEventListener('touchend', () => isDragging = false);
+        
+        window.addEventListener('mousemove', slide);
+        window.addEventListener('touchmove', slide);
     },
 
     /**
@@ -391,6 +519,11 @@ const ChangeDetectionHandler = {
         document.getElementById('btn-change-clear')?.addEventListener('click', () => {
             this.clearImages();
         });
+
+        // Close comparison slider
+        document.getElementById('close-comparison')?.addEventListener('click', () => {
+            document.getElementById('image-comparison-container')?.classList.add('hidden');
+        });
     },
 
     /**
@@ -401,6 +534,9 @@ const ChangeDetectionHandler = {
         this.t2File = null;
         this.currentMaskB64 = null;
         this.currentOverlayB64 = null;
+        this.currentClassifiedB64 = null;
+        this.lastClassifications = null;
+        this.labelColors = {};
 
         // Reset T1 UI
         const previewT1 = document.getElementById('change-preview-t1');
@@ -437,13 +573,45 @@ const ChangeDetectionHandler = {
         // Hide Stats and Toggle
         document.getElementById('change-stats')?.classList.add('hidden');
         document.getElementById('change-view-toggle')?.classList.add('hidden');
-        
+
+        // Reset Comparison UI
+        document.getElementById('image-comparison-container')?.classList.add('hidden');
+        const imgCompT1 = document.getElementById('img-comp-t1');
+        const imgCompT2 = document.getElementById('img-comp-t2');
+        if (imgCompT1) imgCompT1.src = '';
+        if (imgCompT2) imgCompT2.src = '';
+        const slider = document.getElementById('img-comp-slider');
+        const overlay = document.getElementById('img-comp-overlay');
+        if (slider) slider.style.left = '50%';
+        if (overlay) overlay.style.clipPath = 'inset(0 50% 0 0)';
+
+        // Reset Box 4 (Semantic Classification)
+        const classifyPlaceholder = document.getElementById('classify-placeholder');
+        const classifyDisplay = document.getElementById('classify-display');
+        const classifyProcessing = document.getElementById('classify-processing');
+        const classifyImg = document.getElementById('classify-result-img');
+        const classifyBadge = document.getElementById('classify-badge');
+        const classifyResults = document.getElementById('classify-results');
+        if (classifyPlaceholder) {
+            classifyPlaceholder.innerHTML = `
+                <i class="fas fa-brain"></i>
+                <p>Waiting for change detection</p>
+                <small>Labels will appear after analysis</small>
+            `;
+            classifyPlaceholder.classList.remove('hidden');
+        }
+        if (classifyDisplay) classifyDisplay.classList.add('hidden');
+        if (classifyProcessing) classifyProcessing.classList.add('hidden');
+        if (classifyImg) classifyImg.src = '';
+        if (classifyBadge) classifyBadge.classList.add('hidden');
+        if (classifyResults) classifyResults.classList.add('hidden');
+
         this._updateButtonStates();
         App.showToast('Images cleared', 'info');
     },
 
     /**
-     * Setup view toggle (overlay vs mask)
+     * Setup view toggle (overlay vs mask vs classified)
      */
     _setupViewToggle() {
         document.querySelectorAll('.change-view-btn').forEach(btn => {
@@ -459,6 +627,8 @@ const ChangeDetectionHandler = {
                     img.src = `data:image/png;base64,${this.currentOverlayB64}`;
                 } else if (view === 'mask' && this.currentMaskB64) {
                     img.src = `data:image/png;base64,${this.currentMaskB64}`;
+                } else if (view === 'classified' && this.currentClassifiedB64) {
+                    img.src = `data:image/png;base64,${this.currentClassifiedB64}`;
                 }
             });
         });
@@ -557,6 +727,9 @@ const ChangeDetectionHandler = {
         // Store base64 data for view toggle
         this.currentMaskB64 = result.change_mask_b64;
         this.currentOverlayB64 = result.overlay_b64;
+        this.currentClassifiedB64 = result.classified_overlay_b64 || null;
+        this.lastClassifications = result.classifications || null;
+        this.labelColors = result.label_colors || {};
 
         // Show overlay by default
         const img = document.getElementById('change-result-img');
@@ -575,10 +748,188 @@ const ChangeDetectionHandler = {
         // Show view toggle
         document.getElementById('change-view-toggle')?.classList.remove('hidden');
 
+        // Show semantic classification results (Box 4)
+        this._showClassificationResult(result);
+
         App.showToast(
             `✅ Change detection complete! ${result.change_percentage}% area changed (${result.processing_time_sec}s)`,
             'success'
         );
+    },
+
+    /**
+     * Show semantic classification results in Box 4
+     */
+    _showClassificationResult(result) {
+        const placeholder = document.getElementById('classify-placeholder');
+        const display = document.getElementById('classify-display');
+        const processing = document.getElementById('classify-processing');
+        const img = document.getElementById('classify-result-img');
+        const badge = document.getElementById('classify-badge');
+        const resultsContainer = document.getElementById('classify-results');
+        const resultsList = document.getElementById('classify-results-list');
+        const legendContainer = document.getElementById('classify-legend');
+
+        // Hide processing state
+        if (processing) processing.classList.add('hidden');
+
+        const classifications = result.classifications || [];
+        const classifiedB64 = result.classified_overlay_b64;
+        const labelColors = result.label_colors || {};
+        const classCounts = result.class_counts || {};
+
+        if (classifiedB64 && classifications.length > 0) {
+            // Show classified overlay image
+            if (img) img.src = `data:image/png;base64,${classifiedB64}`;
+            if (display) display.classList.remove('hidden');
+            if (placeholder) placeholder.classList.add('hidden');
+
+            // Update badge count
+            if (badge) {
+                badge.textContent = classifications.length;
+                badge.classList.remove('hidden');
+            }
+
+            // Build classification results section
+            if (resultsContainer && resultsList) {
+                resultsContainer.classList.remove('hidden');
+
+                // ── Class Counts Summary Bar ──
+                let summaryHTML = '<div class="classify-summary">';
+                summaryHTML += '<div class="classify-summary-title"><i class="fas fa-chart-bar"></i> Class Summary</div>';
+                summaryHTML += '<div class="classify-summary-counts">';
+
+                const labelNames = {
+                    solar_panel: 'Solar Panels',
+                    construction: 'Construction',
+                    building: 'Buildings',
+                    vegetation: 'Vegetation',
+                    unknown: 'Unknown',
+                };
+
+                for (const [label, count] of Object.entries(classCounts)) {
+                    const color = labelColors[label] || [180, 180, 180];
+                    const rgbStr = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+                    const displayName = labelNames[label] || label.replace(/_/g, ' ');
+
+                    summaryHTML += `
+                        <div class="classify-count-pill">
+                            <span class="classify-count-dot" style="background: ${rgbStr};"></span>
+                            <span class="classify-count-label">${displayName}</span>
+                            <span class="classify-count-num">${count}</span>
+                        </div>
+                    `;
+                }
+                summaryHTML += '</div></div>';
+
+                // ── Individual Detection List ──
+                let listHTML = '<div class="classify-detections-title"><i class="fas fa-list-ol"></i> Detections</div>';
+
+                listHTML += classifications.map(cls => {
+                    const color = labelColors[cls.label] || [180, 180, 180];
+                    const rgbStr = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+                    const confPct = Math.round(cls.confidence * 100);
+                    const displayLabel = cls.label.replace(/_/g, ' ');
+                    const regionId = cls.region_id || '?';
+
+                    return `
+                        <div class="classify-label-chip">
+                            <span class="classify-region-badge" style="background: ${rgbStr};">#${regionId}</span>
+                            <span class="classify-label-name">${displayLabel}</span>
+                            <div class="classify-confidence-bar-wrap">
+                                <div class="classify-confidence-bar" style="width: ${confPct}%; background: ${rgbStr};"></div>
+                            </div>
+                            <span class="classify-confidence-text">${confPct}%</span>
+                        </div>
+                    `;
+                }).join('');
+
+                resultsList.innerHTML = summaryHTML + listHTML;
+            }
+
+            // Build color legend
+            if (legendContainer) {
+                const usedLabels = [...new Set(classifications.map(c => c.label))];
+                const labelNames = {
+                    solar_panel: 'Solar Panels',
+                    construction: 'Construction',
+                    building: 'Buildings',
+                    vegetation: 'Vegetation',
+                    unknown: 'Unknown',
+                };
+                legendContainer.innerHTML = '<div class="classify-legend-title">Color Legend</div>' +
+                    usedLabels.map(label => {
+                        const color = labelColors[label] || [180, 180, 180];
+                        const rgbStr = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+                        const displayName = labelNames[label] || label.replace(/_/g, ' ');
+                        return `
+                            <div class="classify-legend-item">
+                                <span class="classify-legend-dot" style="background: ${rgbStr};"></span>
+                                <span>${displayName}</span>
+                            </div>
+                        `;
+                    }).join('');
+            }
+        } else {
+            // No classifications — show fallback message
+            if (placeholder) {
+                placeholder.innerHTML = `
+                    <i class="fas fa-info-circle"></i>
+                    <p>No classified regions</p>
+                    <small>${result.vlm_available === false
+                        ? 'Install transformers + torch for VLM classification'
+                        : 'No significant change regions detected'}</small>
+                `;
+                placeholder.classList.remove('hidden');
+            }
+            if (display) display.classList.add('hidden');
+            if (badge) badge.classList.add('hidden');
+            if (resultsContainer) resultsContainer.classList.add('hidden');
+        }
+    },
+
+    /**
+     * Run client-side classification after client diff (sends data to server)
+     */
+    async _runClientClassification(maskB64, overlayB64) {
+        if (!this.t2File || !maskB64) return;
+
+        const processing = document.getElementById('classify-processing');
+        const placeholder = document.getElementById('classify-placeholder');
+        if (processing) processing.classList.remove('hidden');
+        if (placeholder) placeholder.classList.add('hidden');
+
+        try {
+            // Convert base64 mask to Blob
+            const maskBlob = await fetch(`data:image/png;base64,${maskB64}`)
+                .then(r => r.blob());
+
+            const formData = new FormData();
+            formData.append('t2_file', this.t2File);
+            formData.append('change_mask_file', new File([maskBlob], 'mask.png', { type: 'image/png' }));
+
+            const result = await API.upload('/api/classify-changes', formData);
+
+            this._showClassificationResult(result);
+
+            if (result.classified_overlay_b64) {
+                this.currentClassifiedB64 = result.classified_overlay_b64;
+                this.lastClassifications = result.classifications;
+                this.labelColors = result.label_colors || {};
+            }
+        } catch (error) {
+            // Classification is optional — don't break the flow
+            console.warn('Client classification failed:', error);
+            if (processing) processing.classList.add('hidden');
+            if (placeholder) {
+                placeholder.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Classification unavailable</p>
+                    <small>${error.message || 'Server error'}</small>
+                `;
+                placeholder.classList.remove('hidden');
+            }
+        }
     },
 
     /**
@@ -694,7 +1045,7 @@ const ChangeDetectionHandler = {
                 if (diff > pixelThresh) {
                     changedPixels++;
 
-                    // Overlay: magenta tint on changed areas
+                    // Overlay: red tint on changed areas
                     outPixels[i] = Math.min(255, outPixels[i] + 120);     // R
                     outPixels[i + 1] = Math.floor(outPixels[i + 1] * 0.4); // G
                     outPixels[i + 2] = Math.min(255, outPixels[i + 2] + 60); // B
@@ -733,6 +1084,9 @@ const ChangeDetectionHandler = {
                 processing_time_sec: processingTime,
                 method: 'client_diff',
             });
+
+            // Trigger server-side semantic classification for the client diff
+            this._runClientClassification(maskB64, overlayB64);
 
             this._resetClientButton();
 

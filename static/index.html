@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,9 +9,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <!-- CesiumJS (FREE, open-source 3D Globe) -->
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Cesium.js"></script>
@@ -28,9 +25,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="/static/css/style.css?v=2">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
-
 <body>
     <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
     <nav id="sidebar" class="sidebar">
@@ -133,6 +129,30 @@
                 <span id="coords-lon">Lon: 0.0000</span>
                 <span id="coords-zoom">Zoom: 3</span>
             </div>
+        </div>
+
+        <!-- IMAGE COMPARISON OVERLAY -->
+        <div id="image-comparison-container" class="image-comparison-container hidden">
+            <div class="img-comp-wrapper">
+                <div class="img-comp-img img-comp-background">
+                    <img id="img-comp-t1" src="" alt="Older Image (T1)">
+                    <div class="img-comp-label img-comp-label-t1">T1 (Older)</div>
+                </div>
+                <div class="img-comp-img img-comp-overlay" id="img-comp-overlay">
+                    <img id="img-comp-t2" src="" alt="Newer Image (T2)">
+                    <div class="img-comp-label img-comp-label-t2">T2 (Newer)</div>
+                </div>
+                <div class="img-comp-slider" id="img-comp-slider">
+                    <div class="slider-handle">
+                        <i class="fas fa-caret-left"></i>
+                        <div class="slider-line"></div>
+                        <i class="fas fa-caret-right"></i>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-icon close-comp-btn" id="close-comparison" title="Close Comparison">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
         <!-- ═══════════════════ PANELS ═══════════════════ -->
@@ -253,6 +273,64 @@
                 </button>
             </div>
             <div class="panel-body">
+                <!-- Detection Mode Tabs (Hidden as only Change Detection is active) -->
+                <div class="detection-tabs hidden" id="detection-mode-tabs" style="display: none;">
+                    <button class="detection-tab" data-mode="object">
+                        <i class="fas fa-crosshairs"></i> Object Detection
+                    </button>
+                    <button class="detection-tab active" data-mode="change">
+                        <i class="fas fa-exchange-alt"></i> Change Detection
+                    </button>
+                </div>
+
+                <!-- ═══ OBJECT DETECTION MODE ═══ -->
+                <div id="mode-object" class="detection-mode-content hidden" style="display: none;">
+                    <p class="panel-description">
+                        Upload aerial or satellite imagery to detect infrastructure using AI.
+                    </p>
+
+                    <!-- Image Upload -->
+                    <div class="drop-zone drop-zone-sm" id="detection-drop-zone">
+                        <input type="file" id="detection-file-input" class="file-input"
+                               accept=".tif,.tiff,.jpg,.jpeg,.png" />
+                        <div class="drop-zone-content">
+                            <i class="fas fa-satellite drop-icon"></i>
+                            <p class="drop-text">Upload aerial image</p>
+                            <p class="drop-subtext">.tif, .jpg, .png</p>
+                        </div>
+                    </div>
+
+                    <!-- Detection Settings -->
+                    <div class="form-group">
+                        <label>Confidence Threshold</label>
+                        <div class="range-group">
+                            <input type="range" id="confidence-slider" class="range-input"
+                                   min="0.1" max="0.95" step="0.05" value="0.5" />
+                            <span id="confidence-value" class="range-value">0.50</span>
+                        </div>
+                    </div>
+
+                    <button id="btn-detect" class="btn btn-primary btn-block" disabled>
+                        <i class="fas fa-search"></i>
+                        <span>Run Detection</span>
+                    </button>
+                    <button id="btn-detect-clear" class="btn btn-outline btn-block" disabled style="margin-top: 8px;">
+                        <i class="fas fa-trash"></i>
+                        <span>Clear Image</span>
+                    </button>
+
+                    <!-- Detection Results -->
+                    <div id="detection-results" class="detection-results hidden">
+                        <h3>Results</h3>
+                        <div id="detection-stats" class="stats-grid"></div>
+                    </div>
+
+                    <!-- Detection History -->
+                    <div id="detection-history" class="detection-history">
+                        <h3>History</h3>
+                        <div id="detection-list" class="detection-list"></div>
+                    </div>
+                </div>
 
                 <!-- ═══ CHANGE DETECTION MODE ═══ -->
                 <div id="mode-change" class="detection-mode-content">
@@ -272,7 +350,7 @@
                             <div class="change-box-body">
                                 <div class="change-drop-zone" id="change-drop-t1">
                                     <input type="file" id="change-file-t1" class="file-input"
-                                        accept=".tif,.tiff,.jpg,.jpeg,.png" />
+                                           accept=".tif,.tiff,.jpg,.jpeg,.png" />
                                     <div class="change-drop-content" id="change-drop-content-t1">
                                         <i class="fas fa-cloud-upload-alt"></i>
                                         <p>Upload T1</p>
@@ -292,7 +370,7 @@
                             <div class="change-box-body">
                                 <div class="change-drop-zone" id="change-drop-t2">
                                     <input type="file" id="change-file-t2" class="file-input"
-                                        accept=".tif,.tiff,.jpg,.jpeg,.png" />
+                                           accept=".tif,.tiff,.jpg,.jpeg,.png" />
                                     <div class="change-drop-content" id="change-drop-content-t2">
                                         <i class="fas fa-cloud-upload-alt"></i>
                                         <p>Upload T2</p>
@@ -324,6 +402,36 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Box 4: Semantic Classification (NEW) -->
+                        <div class="change-box change-box-classify" id="change-box-classify">
+                            <div class="change-box-header change-box-header-classify">
+                                <i class="fas fa-brain"></i>
+                                <span>Semantic Classification</span>
+                                <span class="classify-badge hidden" id="classify-badge">0</span>
+                            </div>
+                            <div class="change-box-body">
+                                <div class="classify-placeholder" id="classify-placeholder">
+                                    <i class="fas fa-brain"></i>
+                                    <p>Waiting for change detection</p>
+                                    <small>Labels will appear after analysis</small>
+                                </div>
+                                <div class="classify-display hidden" id="classify-display">
+                                    <img class="change-result-img" id="classify-result-img" alt="Classified Overlay" />
+                                </div>
+                                <div class="classify-processing hidden" id="classify-processing">
+                                    <div class="change-processing-spinner"></div>
+                                    <p>Classifying regions...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Classification Results List -->
+                    <div id="classify-results" class="classify-results hidden">
+                        <h3><i class="fas fa-tags"></i> Classification Results</h3>
+                        <div class="classify-results-list" id="classify-results-list"></div>
+                        <div class="classify-legend" id="classify-legend"></div>
                     </div>
 
                     <!-- Change Detection Settings -->
@@ -331,27 +439,23 @@
                         <div class="form-group">
                             <label>Change Sensitivity</label>
                             <div class="range-group">
-                                <input type="range" id="change-confidence-slider" class="range-input" min="80" max="200"
-                                    step="5" value="145" />
+                                <input type="range" id="change-confidence-slider" class="range-input"
+                                       min="80" max="200" step="5" value="145" />
                                 <span id="change-confidence-value" class="range-value">145</span>
                             </div>
                             <small class="form-hint">Lower = more sensitive, Higher = stricter filtering</small>
                         </div>
 
                         <div class="change-actions">
-                            <!-- Server-side detection hidden (API not available) -->
-                            <!--
                             <button id="btn-change-detect" class="btn btn-primary btn-block" disabled>
                                 <i class="fas fa-search-plus"></i>
                                 <span>Run Change Detection</span>
                             </button>
-                            -->
-                            <button id="btn-change-client" class="btn btn-primary btn-block" disabled>
+                            <button id="btn-change-client" class="btn btn-outline btn-block" disabled style="margin-top: 8px;">
                                 <i class="fas fa-bolt"></i>
                                 <span>Quick Diff (Client-side)</span>
                             </button>
-                            <button id="btn-change-clear" class="btn btn-outline btn-block" disabled
-                                style="margin-top: 8px; color: var(--danger, #dc3545); border-color: var(--danger, #dc3545);">
+                            <button id="btn-change-clear" class="btn btn-outline btn-block" disabled style="margin-top: 8px; color: var(--danger, #dc3545); border-color: var(--danger, #dc3545);">
                                 <i class="fas fa-trash"></i>
                                 <span>Clear Images</span>
                             </button>
@@ -372,6 +476,9 @@
                         <button class="change-view-btn" data-view="mask">
                             <i class="fas fa-mask"></i> Mask
                         </button>
+                        <button class="change-view-btn" data-view="classified">
+                            <i class="fas fa-brain"></i> Classified
+                        </button>
                     </div>
                 </div>
             </div>
@@ -390,15 +497,18 @@
 
                 <div class="form-group">
                     <label for="search-lat">Latitude</label>
-                    <input type="number" id="search-lat" class="form-input" step="0.0001" placeholder="e.g., 28.6139" />
+                    <input type="number" id="search-lat" class="form-input"
+                           step="0.0001" placeholder="e.g., 28.6139" />
                 </div>
                 <div class="form-group">
                     <label for="search-lon">Longitude</label>
-                    <input type="number" id="search-lon" class="form-input" step="0.0001" placeholder="e.g., 77.2090" />
+                    <input type="number" id="search-lon" class="form-input"
+                           step="0.0001" placeholder="e.g., 77.2090" />
                 </div>
                 <div class="form-group">
                     <label for="search-radius">Radius (meters)</label>
-                    <input type="number" id="search-radius" class="form-input" min="10" max="50000" value="500" />
+                    <input type="number" id="search-radius" class="form-input"
+                           min="10" max="50000" value="500" />
                 </div>
 
                 <button id="btn-search" class="btn btn-primary btn-block">
@@ -503,9 +613,8 @@
     <script src="/static/js/map.js"></script>
     <script src="/static/js/upload.js"></script>
     <script src="/static/js/layers.js"></script>
-    <script src="/static/js/detection.js?v=2"></script>
+    <script src="/static/js/detection.js"></script>
     <script src="/static/js/dashboard.js"></script>
-    <script src="/static/js/app.js?v=2"></script>
+    <script src="/static/js/app.js"></script>
 </body>
-
 </html>
